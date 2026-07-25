@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoReward AI – Smart Waste Detection & Recycling Reward System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        eco: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Custom Style Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gray-50 dark:bg-slate-900 transition-colors duration-300">
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="fixed top-6 right-6 z-50 flex flex-col gap-3 max-w-sm w-full"></div>
+
+    <!-- Auth Wrapper (Login / Signup) -->
+    <div id="auth-screen" class="min-height-screen flex items-center justify-center p-4 min-h-screen">
+        <div class="glass-panel w-full max-w-md p-8 animate-fade-in">
+            <div class="text-center mb-8">
+                <div class="inline-flex p-3 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 rounded-2xl mb-3">
+                    <i data-lucide="leaf" class="w-8 h-8"></i>
+                </div>
+                <h1 class="text-3xl font-bold tracking-tight text-gray-800 dark:text-white">EcoReward AI</h1>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Smart Waste Classification & Rewards</p>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">Email Address</label>
+                    <input type="email" id="login-email" required class="glass-input w-full px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="yourname@domain.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">Password</label>
+                    <input type="password" id="login-password" required class="glass-input w-full px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-lg shadow-emerald-600/20 hover:shadow-emerald-700/30 transition duration-200">
+                    Sign In
+                </button>
+                <div class="text-center text-xs text-gray-500 dark:text-gray-400 mt-4">
+                    New to EcoReward? <a href="#" id="to-register" class="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline">Create an Account</a>
+                </div>
+            </form>
+
+            <!-- Register Form (Hidden initially) -->
+            <form id="register-form" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">Full Name</label>
+                    <input type="text" id="register-name" required class="glass-input w-full px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="Jane Doe">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">Email Address</label>
+                    <input type="email" id="register-email" required class="glass-input w-full px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="yourname@domain.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">Password</label>
+                    <input type="password" id="register-password" required class="glass-input w-full px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-lg shadow-emerald-600/20 hover:shadow-emerald-700/30 transition duration-200">
+                    Sign Up
+                </button>
+                <div class="text-center text-xs text-gray-500 dark:text-gray-400 mt-4">
+                    Already have an account? <a href="#" id="to-login" class="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline">Sign In</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Application (Hidden initially) -->
+    <div id="app-screen" class="hidden min-h-screen flex flex-col md:flex-row">
+        <!-- Sidebar Navigation -->
+        <aside class="w-full md:w-64 glass-panel md:min-h-screen rounded-none border-t-0 border-l-0 flex flex-col justify-between">
+            <div>
+                <!-- Brand Header -->
+                <div class="p-6 flex items-center gap-3 border-b border-gray-200/30">
+                    <div class="p-2 bg-emerald-600 text-white rounded-xl">
+                        <i data-lucide="leaf" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-lg leading-tight dark:text-white">EcoReward AI</h2>
+                        <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">Recycling Portal</span>
+                    </div>
+                </div>
+
+                <!-- Navigation items -->
+                <nav class="p-4 space-y-1">
+                    <a href="#" id="nav-dashboard" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-600 transition active-link">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
+                    </a>
+                    <a href="#" id="nav-upload" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-600 transition">
+                        <i data-lucide="camera" class="w-4 h-4"></i> Scan Waste
+                    </a>
+                    <a href="#" id="nav-history" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-600 transition">
+                        <i data-lucide="history" class="w-4 h-4"></i> Activity History
+                    </a>
+                    <a href="#" id="nav-assistant" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-600 transition">
+                        <i data-lucide="message-square-code" class="w-4 h-4"></i> AI Assistant
+                    </a>
+                    <a href="#" id="nav-admin" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-600 transition hidden">
+                        <i data-lucide="shield-check" class="w-4 h-4"></i> Admin Panel
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Sidebar User Profile Footer -->
+            <div class="p-4 border-t border-gray-200/30 space-y-3">
+                <!-- Theme toggle and Profile info -->
+                <div class="flex items-center justify-between px-2">
+                    <span class="text-xs text-gray-500 dark:text-gray-400 font-semibold">Dark Mode</span>
+                    <button id="theme-toggle" class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                        <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
+                        <i data-lucide="sun" class="w-4 h-4 block dark:hidden"></i>
+                    </button>
+                </div>
+                
+                <div class="flex items-center gap-3 p-2 bg-emerald-500/10 dark:bg-emerald-500/5 rounded-xl border border-emerald-500/20">
+                    <div class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm uppercase" id="user-avatar-char">
+                        U
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-xs font-bold truncate dark:text-white" id="user-display-name">Username</h4>
+                        <span class="text-[10px] text-gray-500 dark:text-gray-400 font-semibold" id="user-badge-level">Level 1 - Beginner</span>
+                    </div>
+                </div>
+
+                <button id="logout-btn" class="w-full flex items-center justify-center gap-2 py-2 px-4 border border-rose-500/20 text-rose-500 hover:bg-rose-500/10 rounded-xl text-xs font-semibold transition">
+                    <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Log Out
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Body Panel -->
+        <main class="flex-1 p-6 md:p-8 flex flex-col gap-6 overflow-y-auto max-h-screen">
+            <!-- Header bar -->
+            <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-200/30 pb-4">
+                <div>
+                    <h2 class="text-2xl font-bold tracking-tight text-gray-800 dark:text-white" id="page-title">Welcome back!</h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-400" id="page-subtitle">Track your carbon impact and recycling rewards here.</p>
+                </div>
+
+                <div class="flex items-center gap-3 self-stretch sm:self-auto">
+                    <!-- Notifications Trigger -->
+                    <div class="relative">
+                        <button id="notifications-toggle" class="p-3 bg-white dark:bg-slate-800 border border-gray-200/40 dark:border-gray-700/40 hover:border-emerald-500 dark:hover:border-emerald-500 text-gray-600 dark:text-gray-300 rounded-xl relative shadow-sm transition">
+                            <i data-lucide="bell" class="w-4 h-4"></i>
+                            <span id="notification-badge" class="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full hidden"></span>
+                        </button>
+
+                        <!-- Notifications Drawer (Dropdown) -->
+                        <div id="notifications-dropdown" class="absolute right-0 mt-2 w-80 glass-panel p-4 z-40 hidden max-h-96 overflow-y-auto">
+                            <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-200/30">
+                                <h4 class="font-bold text-xs uppercase tracking-wider text-gray-700 dark:text-gray-300">Notifications</h4>
+                                <button id="mark-read-btn" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline">Mark all read</button>
+                            </div>
+                            <div id="notifications-list" class="space-y-3">
+                                <!-- Populated dynamically -->
+                                <p class="text-xs text-gray-500 text-center py-4">No new notifications</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PDF Report Button -->
+                    <button id="download-report-btn" class="flex items-center gap-2 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-emerald-600/10 hover:shadow-emerald-700/20 transition duration-200">
+                        <i data-lucide="file-down" class="w-4 h-4"></i> Download Report
+                    </button>
+                </div>
+            </header>
+
+            <!-- CONTENT AREAS -->
+
+            <!-- Section 1: Dashboard -->
+            <section id="section-dashboard" class="space-y-6">
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="glass-panel p-5 relative overflow-hidden flex flex-col justify-between min-h-[120px]">
+                        <div class="flex justify-between items-start text-emerald-600 dark:text-emerald-400 mb-2">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total Uploads</span>
+                            <i data-lucide="scan" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-extrabold tracking-tight dark:text-white" id="stat-uploads">0</h3>
+                            <p class="text-[10px] text-gray-400 font-medium mt-1">Pending and approved</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-5 relative overflow-hidden flex flex-col justify-between min-h-[120px]">
+                        <div class="flex justify-between items-start text-emerald-600 dark:text-emerald-400 mb-2">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Today Recycled</span>
+                            <i data-lucide="scale" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-extrabold tracking-tight dark:text-white" id="stat-weight">0 g</h3>
+                            <p class="text-[10px] text-gray-400 font-medium mt-1">Approved recycling today</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-5 relative overflow-hidden flex flex-col justify-between min-h-[120px]">
+                        <div class="flex justify-between items-start text-emerald-600 dark:text-emerald-400 mb-2">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">CO₂ Saved</span>
+                            <i data-lucide="cloud-lightning" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-extrabold tracking-tight dark:text-white" id="stat-co2">0 kg</h3>
+                            <p class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-1">🌱 Safe Environment</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-5 relative overflow-hidden flex flex-col justify-between min-h-[120px]">
+                        <div class="flex justify-between items-start text-emerald-600 dark:text-emerald-400 mb-2">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Value Earned</span>
+                            <i data-lucide="indian-rupee" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-extrabold tracking-tight dark:text-white" id="stat-revenue">₹0</h3>
+                            <p class="text-[10px] text-gray-400 font-medium mt-1">Estimations at market rates</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reward Points & Gamification Card -->
+                <div class="glass-panel p-6 bg-emerald-500/10 border border-emerald-500/30 flex flex-col lg:flex-row items-center justify-between gap-6">
+                    <div class="flex items-center gap-4 flex-1 w-full">
+                        <div class="p-4 bg-emerald-600 text-white rounded-2xl animate-pulse-glow">
+                            <i data-lucide="award" class="w-8 h-8"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-baseline mb-1">
+                                <h3 class="font-extrabold text-xl text-emerald-800 dark:text-emerald-300" id="user-points-total">0 Eco Points</h3>
+                                <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400" id="gamification-badge">🌱 Beginner</span>
+                            </div>
+                            <!-- Level Progress bar -->
+                            <div class="w-full bg-gray-200 dark:bg-gray-700 h-2.5 rounded-full overflow-hidden">
+                                <div class="bg-emerald-600 h-full rounded-full transition-all duration-500" id="level-progress-bar" style="width: 0%"></div>
+                            </div>
+                            <div class="flex justify-between text-[10px] text-gray-500 mt-1.5 font-semibold">
+                                <span id="level-text-prev">Level 1</span>
+                                <span id="points-to-next">0 / 100 points to next level</span>
+                                <span id="level-text-next">Level 2</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 self-stretch lg:self-auto justify-around border-t lg:border-t-0 lg:border-l border-emerald-500/20 pt-4 lg:pt-0 lg:pl-6">
+                        <div class="text-center px-4">
+                            <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Level</span>
+                            <span class="text-3xl font-extrabold text-emerald-800 dark:text-emerald-300" id="gamification-level">1</span>
+                        </div>
+                        <div class="text-center px-4">
+                            <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Eco Badge</span>
+                            <span class="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 block px-3 py-1 bg-emerald-500/20 rounded-full mt-1" id="badge-pill">Beginner</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts & Leaderboard Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Left: Carbon saved line graph -->
+                    <div class="glass-panel p-5 lg:col-span-2 flex flex-col justify-between h-[360px]">
+                        <div class="mb-4">
+                            <h3 class="font-extrabold text-base dark:text-white">CO₂ Saved Weekly Trend</h3>
+                            <p class="text-xs text-gray-500">Environmental conservation metric (kg CO₂)</p>
+                        </div>
+                        <div class="flex-1 relative min-h-0">
+                            <canvas id="weeklyCarbonChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Right: Waste distribution pie chart -->
+                    <div class="glass-panel p-5 flex flex-col justify-between h-[360px]">
+                        <div class="mb-4">
+                            <h3 class="font-extrabold text-base dark:text-white">Waste Recycled (kg)</h3>
+                            <p class="text-xs text-gray-500">Category-wise breakdown</p>
+                        </div>
+                        <div class="flex-1 relative flex items-center justify-center min-h-0">
+                            <canvas id="categoryDistributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leaderboard & Recent Submissions -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Left: Recent submissions -->
+                    <div class="glass-panel p-5 lg:col-span-2 flex flex-col justify-between">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-extrabold text-base dark:text-white">Recent Activities</h3>
+                            <a href="#" id="view-all-history" class="text-xs text-emerald-600 dark:text-emerald-400 font-bold hover:underline">View History</a>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="border-b border-gray-200/30 text-gray-500 font-bold">
+                                        <th class="py-2.5">Category</th>
+                                        <th class="py-2.5">Weight</th>
+                                        <th class="py-2.5">CO₂ Saved</th>
+                                        <th class="py-2.5">Status</th>
+                                        <th class="py-2.5 text-right">Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recent-records-tbody">
+                                    <tr>
+                                        <td colspan="5" class="py-6 text-center text-gray-400">No recycling activity recorded yet.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Right: Leaderboard -->
+                    <div class="glass-panel p-5 flex flex-col justify-between">
+                        <div class="mb-4">
+                            <h3 class="font-extrabold text-base dark:text-white">Eco Leaderboard</h3>
+                            <p class="text-xs text-gray-500">Top contributors in our community</p>
+                        </div>
+                        <div id="leaderboard-list" class="space-y-3 flex-1 overflow-y-auto">
+                            <!-- Populated dynamically -->
+                            <p class="text-xs text-gray-500 text-center py-4">Loading leaderboard...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Upload Module -->
+            <section id="section-upload" class="space-y-6 hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Left Column: Upload box and preview -->
+                    <div class="glass-panel p-6 flex flex-col items-center justify-between min-h-[400px]">
+                        <div class="w-full text-center mb-4">
+                            <h3 class="font-extrabold text-base dark:text-white">Waste Scanner</h3>
+                            <p class="text-xs text-gray-500">Take or select a photo of the waste to analyze.</p>
+                        </div>
+
+                        <!-- Drop area -->
+                        <div id="drop-area" class="w-full flex-1 border-2 border-dashed border-emerald-500/30 rounded-2xl bg-emerald-500/5 hover:bg-emerald-500/10 flex flex-col items-center justify-center p-6 text-center cursor-pointer transition relative overflow-hidden min-h-[260px]">
+                            <input type="file" id="file-input" class="hidden" accept="image/*">
+                            
+                            <!-- Bounding box overlay container -->
+                            <div id="preview-container" class="absolute inset-0 w-full h-full hidden flex items-center justify-center bg-black/5">
+                                <img id="uploaded-image" class="max-h-full max-w-full object-contain relative" src="" alt="Upload Preview">
+                                <div id="bounding-box" class="bounding-box-rect hidden"></div>
+                            </div>
+
+                            <!-- Drop icons -->
+                            <div id="drop-placeholder" class="space-y-3">
+                                <div class="inline-flex p-4 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-full">
+                                    <i data-lucide="cloud-upload" class="w-8 h-8"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-semibold dark:text-white">Drag & drop or click to upload</p>
+                                    <p class="text-xs text-gray-400 mt-1">Supports PNG, JPG, JPEG formats</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Upload buttons -->
+                        <div class="flex gap-3 w-full mt-4">
+                            <button id="reset-upload-btn" class="flex-1 py-3 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 font-semibold rounded-xl text-sm transition hidden">
+                                Reset
+                            </button>
+                            <button id="process-image-btn" class="flex-[2] py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm shadow-md transition disabled:opacity-50" disabled>
+                                Scan Image
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: AI Analysis details -->
+                    <div id="ai-results-panel" class="glass-panel p-6 flex flex-col justify-between opacity-50 pointer-events-none">
+                        <div>
+                            <div class="flex justify-between items-start mb-6">
+                                <div>
+                                    <h3 class="font-extrabold text-base dark:text-white">AI Detection Results</h3>
+                                    <p class="text-xs text-gray-500">Estimates and classifications from Vision model</p>
+                                </div>
+                                <span id="ai-confidence" class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 hidden">95% Confident</span>
+                            </div>
+
+                            <div class="space-y-4">
+                                <!-- Category Select -->
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Detected Waste Category</label>
+                                    <select id="ai-category-select" class="glass-input w-full px-4 py-2.5 text-sm font-semibold">
+                                        <option value="Plastic">Plastic</option>
+                                        <option value="Paper">Paper</option>
+                                        <option value="Metal">Metal</option>
+                                        <option value="Glass">Glass</option>
+                                        <option value="Organic">Organic</option>
+                                        <option value="E-waste">E-waste</option>
+                                    </select>
+                                </div>
+
+                                <!-- Weight adjustment -->
+                                <div>
+                                    <div class="flex justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                                        <span>Estimated Weight</span>
+                                        <span id="weight-slider-val" class="text-emerald-600">250g</span>
+                                    </div>
+                                    <input type="range" id="weight-slider" min="10" max="5000" step="10" value="250" class="w-full accent-emerald-600 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg cursor-pointer">
+                                    <p class="text-[10px] text-gray-400 mt-1">Adjust weight slider if the estimation is inaccurate.</p>
+                                </div>
+
+                                <!-- Grid details -->
+                                <div class="grid grid-cols-2 gap-4 mt-6">
+                                    <div class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
+                                        <span class="text-[10px] text-gray-500 font-bold uppercase block mb-1">CO₂ Prevented</span>
+                                        <span id="ai-carbon-saved" class="text-lg font-black text-emerald-600">0.32 kg CO₂</span>
+                                    </div>
+                                    <div class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
+                                        <span class="text-[10px] text-gray-500 font-bold uppercase block mb-1">Estimated Value</span>
+                                        <span id="ai-recycling-value" class="text-lg font-black text-emerald-600">₹36.00</span>
+                                    </div>
+                                </div>
+
+                                <!-- Rewards Preview -->
+                                <div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-3">
+                                    <div class="p-2.5 bg-amber-500 text-white rounded-lg">
+                                        <i data-lucide="zap" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-xs font-bold text-amber-800 dark:text-amber-400">Award Points: +<span id="ai-points-award">20</span> Eco Points</h4>
+                                        <p class="text-[10px] text-gray-400">Points credited post-verification by administrator.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="confirm-recycling-btn" class="w-full mt-6 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-lg shadow-emerald-600/15 hover:shadow-emerald-700/20 transition">
+                            Confirm and Submit Recycling
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: History & List -->
+            <section id="section-history" class="space-y-6 hidden">
+                <div class="glass-panel p-6">
+                    <!-- Filters and search header -->
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+                        <div class="relative w-full sm:max-w-xs">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                                <i data-lucide="search" class="w-4 h-4"></i>
+                            </span>
+                            <input type="text" id="history-search" class="glass-input w-full pl-9 pr-4 py-2.5 text-sm" placeholder="Search by Category...">
+                        </div>
+
+                        <div class="flex gap-3 w-full sm:w-auto">
+                            <!-- Category Filter -->
+                            <select id="history-filter-category" class="glass-input px-3 py-2.5 text-xs font-semibold flex-1 sm:flex-initial">
+                                <option value="">All Categories</option>
+                                <option value="Plastic">Plastic</option>
+                                <option value="Paper">Paper</option>
+                                <option value="Metal">Metal</option>
+                                <option value="Glass">Glass</option>
+                                <option value="Organic">Organic</option>
+                                <option value="E-waste">E-waste</option>
+                            </select>
+
+                            <!-- Status Filter -->
+                            <select id="history-filter-status" class="glass-input px-3 py-2.5 text-xs font-semibold flex-1 sm:flex-initial">
+                                <option value="">All Statuses</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Rejected">Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- History Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="border-b border-gray-200/30 text-gray-500 font-bold uppercase tracking-wider text-[10px]">
+                                    <th class="py-3 px-4">Date</th>
+                                    <th class="py-3 px-4">Photo</th>
+                                    <th class="py-3 px-4">Category</th>
+                                    <th class="py-3 px-4">Weight (g)</th>
+                                    <th class="py-3 px-4">CO₂ Saved (kg)</th>
+                                    <th class="py-3 px-4">Recycling Revenue</th>
+                                    <th class="py-3 px-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body" class="divide-y divide-gray-200/10">
+                                <!-- Populated dynamically -->
+                                <tr>
+                                    <td colspan="7" class="py-12 text-center text-gray-400">Loading history records...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="flex items-center justify-between border-t border-gray-200/20 pt-4 mt-4">
+                        <span class="text-xs text-gray-500" id="history-page-info">Showing page 1 of 1</span>
+                        <div class="flex gap-2">
+                            <button id="history-prev-btn" class="px-3 py-1.5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg text-xs font-semibold disabled:opacity-50" disabled>Previous</button>
+                            <button id="history-next-btn" class="px-3 py-1.5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg text-xs font-semibold disabled:opacity-50" disabled>Next</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: AI chatbot Assistant -->
+            <section id="section-assistant" class="space-y-6 hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[500px]">
+                    <!-- Left Panel: FAQ Quick prompts -->
+                    <div class="glass-panel p-5 flex flex-col justify-between h-full lg:col-span-1">
+                        <div>
+                            <h3 class="font-extrabold text-base mb-3 dark:text-white">Recycling Help</h3>
+                            <p class="text-xs text-gray-500 mb-4">Click below to ask standard questions instantly.</p>
+                            
+                            <!-- Preset prompts list -->
+                            <div class="space-y-2" id="faq-prompts">
+                                <button class="faq-btn w-full text-left p-2.5 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/15 rounded-xl text-xs font-semibold text-emerald-800 dark:text-emerald-300 transition">
+                                    How to recycle plastic?
+                                </button>
+                                <button class="faq-btn w-full text-left p-2.5 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/15 rounded-xl text-xs font-semibold text-emerald-800 dark:text-emerald-300 transition">
+                                    Tips for E-waste
+                                </button>
+                                <button class="faq-btn w-full text-left p-2.5 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/15 rounded-xl text-xs font-semibold text-emerald-800 dark:text-emerald-300 transition">
+                                    How do I earn points?
+                                </button>
+                                <button class="faq-btn w-full text-left p-2.5 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/15 rounded-xl text-xs font-semibold text-emerald-800 dark:text-emerald-300 transition">
+                                    What is CO2 saved?
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Language selector -->
+                        <div class="border-t border-gray-200/20 pt-4">
+                            <label class="block text-xs font-bold uppercase text-gray-500 mb-1.5">Assistant Language</label>
+                            <select id="chat-lang-select" class="glass-input w-full px-3 py-2 text-xs font-semibold">
+                                <option value="English">English</option>
+                                <option value="Tamil">தமிழ் (Tamil)</option>
+                                <option value="Hindi">हिन्दी (Hindi)</option>
+                                <option value="Malayalam">മലയാളം (Malayalam)</option>
+                                <option value="Telugu">తెలుగు (Telugu)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Actual chat interface -->
+                    <div class="glass-panel p-5 flex flex-col justify-between h-full lg:col-span-3">
+                        <!-- Chat header -->
+                        <div class="flex items-center gap-3 border-b border-gray-200/20 pb-3 mb-3">
+                            <div class="p-2 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 rounded-lg">
+                                <i data-lucide="bot" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-extrabold text-sm dark:text-white">Eco Assistant AI</h4>
+                                <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase">Online Help Desk</span>
+                            </div>
+                        </div>
+
+                        <!-- Chat messages area -->
+                        <div id="chat-messages" class="flex-1 overflow-y-auto space-y-4 pr-1 mb-4">
+                            <!-- Populated dynamically -->
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center text-xs font-bold shrink-0">AI</div>
+                                <div class="p-3 bg-gray-100 dark:bg-slate-800/80 text-gray-800 dark:text-gray-200 text-xs rounded-2xl max-w-[80%] chat-bubble-bot shadow-sm">
+                                    Hello! I am your EcoReward AI assistant. Select a waste category or ask me how to recycle, segregate, or reduce your carbon footprint!
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Input bar -->
+                        <form id="chat-form" class="flex gap-2">
+                            <input type="text" id="chat-input" required class="glass-input flex-1 px-4 py-3 text-xs focus:ring-2 focus:ring-emerald-500" placeholder="Type a message or question...">
+                            <button type="submit" class="p-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md transition shrink-0">
+                                <i data-lucide="send" class="w-4 h-4"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 5: Admin Panel -->
+            <section id="section-admin" class="space-y-6 hidden">
+                <!-- Admin Statistics Grid -->
+                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div class="glass-panel p-4">
+                        <span class="text-[10px] text-gray-500 font-semibold block uppercase">Total Users</span>
+                        <h4 class="text-xl font-extrabold mt-1 dark:text-white" id="admin-stat-users">0</h4>
+                    </div>
+                    <div class="glass-panel p-4">
+                        <span class="text-[10px] text-gray-500 font-semibold block uppercase">Total Scanned</span>
+                        <h4 class="text-xl font-extrabold mt-1 dark:text-white" id="admin-stat-uploads">0</h4>
+                    </div>
+                    <div class="glass-panel p-4 bg-amber-500/10 border-amber-500/35">
+                        <span class="text-[10px] text-amber-700 dark:text-amber-400 font-semibold block uppercase">Pending Reviews</span>
+                        <h4 class="text-xl font-extrabold mt-1 text-amber-600" id="admin-stat-pending">0</h4>
+                    </div>
+                    <div class="glass-panel p-4">
+                        <span class="text-[10px] text-gray-500 font-semibold block uppercase">CO₂ Savings (kg)</span>
+                        <h4 class="text-xl font-extrabold mt-1 dark:text-white" id="admin-stat-co2">0.0</h4>
+                    </div>
+                    <div class="glass-panel p-4">
+                        <span class="text-[10px] text-gray-500 font-semibold block uppercase">Payouts (₹)</span>
+                        <h4 class="text-xl font-extrabold mt-1 dark:text-white" id="admin-stat-revenue">₹0</h4>
+                    </div>
+                </div>
+
+                <!-- Admin Tabs Menu -->
+                <div class="flex gap-2 border-b border-gray-200/20 pb-1">
+                    <button id="admin-tab-verify" class="px-4 py-2 border-b-2 border-emerald-600 text-emerald-600 font-bold text-xs uppercase tracking-wider">Verifications</button>
+                    <button id="admin-tab-rates" class="px-4 py-2 border-b-2 border-transparent text-gray-500 font-bold text-xs uppercase tracking-wider hover:text-gray-800 dark:hover:text-white transition">Recycling Rates</button>
+                    <button id="admin-tab-users" class="px-4 py-2 border-b-2 border-transparent text-gray-500 font-bold text-xs uppercase tracking-wider hover:text-gray-800 dark:hover:text-white transition">Users Management</button>
+                </div>
+
+                <!-- Tab 1: Verifications Queue -->
+                <div id="admin-panel-verify" class="glass-panel p-6 space-y-4">
+                    <h3 class="font-extrabold text-sm dark:text-white mb-4">Pending Approvals Queue</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="border-b border-gray-200/30 text-gray-500 font-bold">
+                                    <th class="py-2.5 px-4">User</th>
+                                    <th class="py-2.5 px-4">Date</th>
+                                    <th class="py-2.5 px-4">Photo</th>
+                                    <th class="py-2.5 px-4">Category</th>
+                                    <th class="py-2.5 px-4">Weight</th>
+                                    <th class="py-2.5 px-4">Points</th>
+                                    <th class="py-2.5 px-4 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-verify-tbody" class="divide-y divide-gray-200/10">
+                                <!-- Populated dynamically -->
+                                <tr>
+                                    <td colspan="7" class="py-8 text-center text-gray-400">No pending approvals remaining.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Recycling Rates -->
+                <div id="admin-panel-rates" class="glass-panel p-6 space-y-4 hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-extrabold text-sm dark:text-white">Rates and Impacts</h3>
+                        <p class="text-xs text-gray-500">Configure market rates (₹/kg) and emission factors (kg CO₂/kg).</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Rates listing/inputs -->
+                        <div class="space-y-3">
+                            <table class="w-full text-xs text-left">
+                                <thead>
+                                    <tr class="border-b border-gray-200/20 text-gray-500 font-bold">
+                                        <th class="py-2">Category</th>
+                                        <th class="py-2">Rate (₹/kg)</th>
+                                        <th class="py-2">CO₂ Factor</th>
+                                        <th class="py-2 text-right">Edit</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-rates-tbody" class="divide-y divide-gray-200/10">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Update form -->
+                        <form id="rate-update-form" class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-xl space-y-4 flex flex-col justify-between">
+                            <h4 class="font-extrabold text-xs text-emerald-800 dark:text-emerald-300 uppercase">Update Category Constants</h4>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-500 mb-1">Select Category</label>
+                                    <select id="rate-update-category" class="glass-input w-full px-3 py-2 text-xs">
+                                        <option value="Plastic">Plastic</option>
+                                        <option value="Paper">Paper</option>
+                                        <option value="Metal">Metal</option>
+                                        <option value="Glass">Glass</option>
+                                        <option value="Organic">Organic</option>
+                                        <option value="E-waste">E-waste</option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 mb-1">Rate (₹/kg)</label>
+                                        <input type="number" step="0.1" required id="rate-update-price" class="glass-input w-full px-3 py-2 text-xs">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 mb-1">CO₂ Factor (kg/kg)</label>
+                                        <input type="number" step="0.1" required id="rate-update-co2" class="glass-input w-full px-3 py-2 text-xs">
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full mt-4 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition">
+                                Apply Constants
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Users List -->
+                <div id="admin-panel-users" class="glass-panel p-6 space-y-4 hidden">
+                    <h3 class="font-extrabold text-sm dark:text-white mb-4">Registered Eco-Warriors</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="border-b border-gray-200/30 text-gray-500 font-bold">
+                                    <th class="py-2.5 px-4">Name</th>
+                                    <th class="py-2.5 px-4">Email</th>
+                                    <th class="py-2.5 px-4">Eco Points</th>
+                                    <th class="py-2.5 px-4">Level</th>
+                                    <th class="py-2.5 px-4">Badge Title</th>
+                                    <th class="py-2.5 px-4">User Type</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-users-tbody" class="divide-y divide-gray-200/10">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Image Detail Modal -->
+    <div id="image-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden">
+        <div class="glass-panel w-full max-w-lg overflow-hidden flex flex-col justify-between max-h-[90vh]">
+            <div class="flex justify-between items-center p-4 border-b border-gray-200/20">
+                <h3 class="font-bold text-sm dark:text-white" id="image-modal-title">Waste Image</h3>
+                <button id="image-modal-close" class="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 transition">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="p-4 flex-1 flex items-center justify-center bg-black/5 overflow-hidden">
+                <img id="image-modal-src" class="max-w-full max-h-[60vh] object-contain rounded-lg shadow-md" src="" alt="Waste Image Detail">
+            </div>
+            <div class="p-4 border-t border-gray-200/20 text-xs text-gray-500" id="image-modal-details">
+                Record ID: #1 | Weight: 400g | Confidence: 94%
+            </div>
+        </div>
+    </div>
+
+    <!-- Core App Logic -->
+    <script src="app.js"></script>
+</body>
+</html>

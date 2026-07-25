@@ -1,0 +1,179 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+    --primary: #059669;
+    --primary-light: #34d399;
+    --primary-dark: #065f46;
+    --bg-gradient: radial-gradient(circle at 10% 20%, rgb(240, 253, 244) 0%, rgb(255, 255, 255) 90%);
+    --text-main: #1f2937;
+    --text-muted: #4b5563;
+    --border-color: rgba(16, 185, 129, 0.15);
+    --glass-bg: rgba(255, 255, 255, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.4);
+    --shadow: 0 8px 32px 0 rgba(16, 185, 129, 0.08);
+}
+
+.dark {
+    --primary: #10b981;
+    --primary-light: #6ee7b7;
+    --primary-dark: #047857;
+    --bg-gradient: radial-gradient(circle at 10% 20%, rgb(6, 32, 23) 0%, rgb(15, 23, 42) 90%);
+    --text-main: #f3f4f6;
+    --text-muted: #9ca3af;
+    --border-color: rgba(16, 185, 129, 0.25);
+    --glass-bg: rgba(15, 23, 42, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Plus Jakarta Sans', 'Outfit', sans-serif;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+body {
+    background: var(--bg-gradient);
+    color: var(--text-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Glassmorphism primitives */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow);
+    border-radius: 16px;
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.dark .glass-card {
+    background: rgba(15, 23, 42, 0.3);
+}
+
+.glass-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow: 0 12px 24px -10px rgba(16, 185, 129, 0.2);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+    50% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.45); }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse-glow {
+    animation: pulse-glow 2s infinite ease-in-out;
+}
+
+/* Notification Popups */
+.notification-toast {
+    animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(16, 185, 129, 0.3);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(16, 185, 129, 0.6);
+}
+
+/* Chat window message bubble styles */
+.chat-bubble-bot {
+    border-bottom-left-radius: 2px;
+}
+
+.chat-bubble-user {
+    border-bottom-right-radius: 2px;
+}
+
+/* Custom switch / toggles */
+.toggle-checkbox:checked {
+    right: 0;
+    border-color: var(--primary);
+}
+.toggle-checkbox:checked + .toggle-label {
+    background-color: var(--primary);
+}
+
+/* Form inputs styling */
+.glass-input {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: var(--text-main);
+    border-radius: 8px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.dark .glass-input {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.glass-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+/* Active sidebar link indicator */
+.active-link {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--primary) !important;
+    border-left: 4px solid var(--primary);
+}
+
+/* Bounding Box on Image */
+.bounding-box-rect {
+    border: 3px dashed #10b981;
+    position: absolute;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.8), inset 0 0 15px rgba(16, 185, 129, 0.3);
+    pointer-events: none;
+    animation: box-glow 1.5s infinite alternate;
+}
+
+@keyframes box-glow {
+    from {
+        border-color: #10b981;
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.6), inset 0 0 8px rgba(16, 185, 129, 0.2);
+    }
+    to {
+        border-color: #34d399;
+        box-shadow: 0 0 18px rgba(52, 211, 153, 0.9), inset 0 0 20px rgba(52, 211, 153, 0.4);
+    }
+}
