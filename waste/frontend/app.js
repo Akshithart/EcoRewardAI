@@ -1,6 +1,18 @@
 // Global API URL config
 const API_URL = window.location.origin;
 
+// Category Default Points Configuration
+const DEFAULT_POINTS = {
+    "Plastic": 20,
+    "Paper": 10,
+    "Glass": 15,
+    "Metal": 25,
+    "E-waste": 50,
+    "Organic": 5,
+    "Cardboard": 12,
+    "Trash": 2
+};
+
 // State Management
 let token = localStorage.getItem("eco_token") || null;
 let currentUser = null;
@@ -40,6 +52,7 @@ async function initApp() {
     setupAdminListeners();
     setupNotifications();
     setupReportDownload();
+    setupHistoryControls();
     
     // Check if token exists and fetch user profile
     if (token) {
@@ -62,72 +75,80 @@ function setupAuthListeners() {
     const registerForm = document.getElementById("register-form");
     const logoutBtn = document.getElementById("logout-btn");
 
-    toRegisterLink.addEventListener("click", (e) => {
-        e.preventDefault();
-        loginForm.classList.add("hidden");
-        registerForm.classList.remove("hidden");
-    });
+    if (toRegisterLink) {
+        toRegisterLink.addEventListener("click", (e) => {
+            e.preventDefault();
+            loginForm.classList.add("hidden");
+            registerForm.classList.remove("hidden");
+        });
+    }
 
-    toLoginLink.addEventListener("click", (e) => {
-        e.preventDefault();
-        registerForm.classList.add("hidden");
-        loginForm.classList.remove("hidden");
-    });
+    if (toLoginLink) {
+        toLoginLink.addEventListener("click", (e) => {
+            e.preventDefault();
+            registerForm.classList.add("hidden");
+            loginForm.classList.remove("hidden");
+        });
+    }
 
-    loginForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const email = document.getElementById("login-email").value;
-        const password = document.getElementById("login-password").value;
-        
-        try {
-            const res = await fetch(`${API_URL}/api/auth/login`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password })
-            });
-            if (!res.ok) throw new Error("Invalid credentials");
-            const data = await res.json();
-            token = data.access_token;
-            localStorage.setItem("eco_token", token);
-            showToast("Welcome back!", "success");
+    if (loginForm) {
+        loginForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const email = document.getElementById("login-email").value;
+            const password = document.getElementById("login-password").value;
             
-            const authenticated = await fetchUserProfile();
-            if (authenticated) {
-                showDashboardScreen();
+            try {
+                const res = await fetch(`${API_URL}/api/auth/login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password })
+                });
+                if (!res.ok) throw new Error("Invalid credentials");
+                const data = await res.json();
+                token = data.access_token;
+                localStorage.setItem("eco_token", token);
+                showToast("Welcome back!", "success");
+                
+                const authenticated = await fetchUserProfile();
+                if (authenticated) {
+                    showDashboardScreen();
+                }
+            } catch (err) {
+                showToast(err.message, "error");
             }
-        } catch (err) {
-            showToast(err.message, "error");
-        }
-    });
+        });
+    }
 
-    registerForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const name = document.getElementById("register-name").value;
-        const email = document.getElementById("register-email").value;
-        const password = document.getElementById("register-password").value;
-        
-        try {
-            const res = await fetch(`${API_URL}/api/auth/register`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, email, password })
-            });
-            if (!res.ok) throw new Error("Registration failed");
-            const data = await res.json();
-            token = data.access_token;
-            localStorage.setItem("eco_token", token);
-            showToast("Account created successfully!", "success");
+    if (registerForm) {
+        registerForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const name = document.getElementById("register-name").value;
+            const email = document.getElementById("register-email").value;
+            const password = document.getElementById("register-password").value;
             
-            const authenticated = await fetchUserProfile();
-            if (authenticated) {
-                showDashboardScreen();
+            try {
+                const res = await fetch(`${API_URL}/api/auth/register`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, email, password })
+                });
+                if (!res.ok) throw new Error("Registration failed");
+                const data = await res.json();
+                token = data.access_token;
+                localStorage.setItem("eco_token", token);
+                showToast("Account created successfully!", "success");
+                
+                const authenticated = await fetchUserProfile();
+                if (authenticated) {
+                    showDashboardScreen();
+                }
+            } catch (err) {
+                showToast(err.message, "error");
             }
-        } catch (err) {
-            showToast(err.message, "error");
-        }
-    });
+        });
+    }
 
-    logoutBtn.addEventListener("click", logout);
+    if (logoutBtn) logoutBtn.addEventListener("click", logout);
 }
 
 function logout() {
@@ -145,16 +166,22 @@ async function fetchUserProfile() {
         currentUser = await res.json();
         
         // Update user display header elements
-        document.getElementById("user-display-name").innerText = currentUser.name;
-        document.getElementById("user-badge-level").innerText = `Lvl ${currentUser.level} - ${currentUser.badge}`;
-        document.getElementById("user-avatar-char").innerText = currentUser.name.charAt(0);
+        const nameEl = document.getElementById("user-display-name");
+        const badgeEl = document.getElementById("user-badge-level");
+        const avatarEl = document.getElementById("user-avatar-char");
+        
+        if (nameEl) nameEl.innerText = currentUser.name;
+        if (badgeEl) badgeEl.innerText = `Lvl ${currentUser.level} - ${currentUser.badge}`;
+        if (avatarEl) avatarEl.innerText = currentUser.name.charAt(0);
         
         // Check if user is admin
         const adminTabBtn = document.getElementById("nav-admin");
-        if (currentUser.is_admin) {
-            adminTabBtn.classList.remove("hidden");
-        } else {
-            adminTabBtn.classList.add("hidden");
+        if (adminTabBtn) {
+            if (currentUser.is_admin) {
+                adminTabBtn.classList.remove("hidden");
+            } else {
+                adminTabBtn.classList.add("hidden");
+            }
         }
         
         return true;
@@ -174,23 +201,34 @@ function setupNavigationListeners() {
     ];
 
     navItems.forEach(item => {
-        document.getElementById(item.id).addEventListener("click", (e) => {
-            e.preventDefault();
-            
-            // Set active class styling
-            navItems.forEach(x => document.getElementById(x.id).classList.remove("active-link"));
-            document.getElementById(item.id).classList.add("active-link");
-            
-            showScreen(item.name);
-        });
+        const el = document.getElementById(item.id);
+        if (el) {
+            el.addEventListener("click", (e) => {
+                e.preventDefault();
+                
+                // Set active class styling
+                navItems.forEach(x => {
+                    const btn = document.getElementById(x.id);
+                    if (btn) btn.classList.remove("active-link");
+                });
+                el.classList.add("active-link");
+                
+                showScreen(item.name);
+            });
+        }
     });
 
-    document.getElementById("view-all-history").addEventListener("click", (e) => {
-        e.preventDefault();
-        document.getElementById("nav-dashboard").classList.remove("active-link");
-        document.getElementById("nav-history").classList.add("active-link");
-        showScreen("history");
-    });
+    const viewAllBtn = document.getElementById("view-all-history");
+    if (viewAllBtn) {
+        viewAllBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            const dashNav = document.getElementById("nav-dashboard");
+            const histNav = document.getElementById("nav-history");
+            if (dashNav) dashNav.classList.remove("active-link");
+            if (histNav) histNav.classList.add("active-link");
+            showScreen("history");
+        });
+    }
 }
 
 function showScreen(screen) {
@@ -198,6 +236,8 @@ function showScreen(screen) {
     const authScreen = document.getElementById("auth-screen");
     const appScreen = document.getElementById("app-screen");
     
+    if (!authScreen || !appScreen) return;
+
     // Hide screens initially
     authScreen.classList.add("hidden");
     appScreen.classList.add("hidden");
@@ -205,43 +245,47 @@ function showScreen(screen) {
     // Hide all sections
     const sections = ["dashboard", "upload", "history", "assistant", "admin"];
     sections.forEach(s => {
-        document.getElementById(`section-${s}`).classList.add("hidden");
+        const sec = document.getElementById(`section-${s}`);
+        if (sec) sec.classList.add("hidden");
     });
 
     if (screen === "auth") {
         authScreen.classList.remove("hidden");
     } else {
         appScreen.classList.remove("hidden");
-        document.getElementById(`section-${screen}`).classList.remove("hidden");
+        const activeSec = document.getElementById(`section-${screen}`);
+        if (activeSec) activeSec.classList.remove("hidden");
         
         // Setup header texts
         const headerTitle = document.getElementById("page-title");
         const headerSubtitle = document.getElementById("page-subtitle");
         
         if (screen === "dashboard") {
-            headerTitle.innerText = `Welcome back, ${currentUser.name}!`;
-            headerSubtitle.innerText = "Track your carbon impact and recycling rewards here.";
+            if (headerTitle) headerTitle.innerText = `Welcome back, ${currentUser ? currentUser.name : 'User'}!`;
+            if (headerSubtitle) headerSubtitle.innerText = "Track your carbon impact and recycling rewards here.";
             loadDashboardData();
         } else if (screen === "upload") {
-            headerTitle.innerText = "Waste Scanner & AI Classifier";
-            headerSubtitle.innerText = "Upload waste images and get verified instantly.";
+            if (headerTitle) headerTitle.innerText = "Waste Scanner & AI Classifier";
+            if (headerSubtitle) headerSubtitle.innerText = "Upload waste images and get verified instantly.";
             resetUploadForm();
         } else if (screen === "history") {
-            headerTitle.innerText = "Recycling Logs";
-            headerSubtitle.innerText = "Your environmental contribution activities history.";
+            if (headerTitle) headerTitle.innerText = "Recycling Logs";
+            if (headerSubtitle) headerSubtitle.innerText = "Your environmental contribution activities history.";
             loadHistoryData();
         } else if (screen === "assistant") {
-            headerTitle.innerText = "Eco AI Assistant";
-            headerSubtitle.innerText = "Ask questions and get multilingual guidance on waste management.";
+            if (headerTitle) headerTitle.innerText = "Eco AI Assistant";
+            if (headerSubtitle) headerSubtitle.innerText = "Ask questions and get multilingual guidance on waste management.";
         } else if (screen === "admin") {
-            headerTitle.innerText = "Admin Portal Dashboard";
-            headerSubtitle.innerText = "Manage recycling verifications, rates, and eco accounts.";
+            if (headerTitle) headerTitle.innerText = "Admin Portal Dashboard";
+            if (headerSubtitle) headerSubtitle.innerText = "Manage recycling verifications, rates, and eco accounts.";
             loadAdminData();
         }
     }
     
-    // Trigger Lucide icons reload
-    lucide.createIcons();
+    // Trigger Lucide icons reload if available
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
 }
 
 function showDashboardScreen() {
@@ -252,7 +296,6 @@ function showDashboardScreen() {
 function setupThemeToggle() {
     const themeBtn = document.getElementById("theme-toggle");
     
-    // Set theme on startup
     if (localStorage.getItem("eco_theme") === "dark" || 
         (!localStorage.getItem("eco_theme") && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
         document.documentElement.classList.add("dark");
@@ -260,25 +303,28 @@ function setupThemeToggle() {
         document.documentElement.classList.remove("dark");
     }
     
-    themeBtn.addEventListener("click", () => {
-        if (document.documentElement.classList.contains("dark")) {
-            document.documentElement.classList.remove("dark");
-            localStorage.setItem("eco_theme", "light");
-        } else {
-            document.documentElement.classList.add("dark");
-            localStorage.setItem("eco_theme", "dark");
-        }
-        
-        // Re-render charts for dark mode styling
-        if (currentScreen === "dashboard") {
-            loadDashboardData();
-        }
-    });
+    if (themeBtn) {
+        themeBtn.addEventListener("click", () => {
+            if (document.documentElement.classList.contains("dark")) {
+                document.documentElement.classList.remove("dark");
+                localStorage.setItem("eco_theme", "light");
+            } else {
+                document.documentElement.classList.add("dark");
+                localStorage.setItem("eco_theme", "dark");
+            }
+            
+            if (currentScreen === "dashboard") {
+                loadDashboardData();
+            }
+        });
+    }
 }
 
 // Toast Notifications System
 function showToast(message, type = "success") {
     const container = document.getElementById("toast-container");
+    if (!container) return;
+
     const toast = document.createElement("div");
     toast.className = `notification-toast flex items-center gap-3 p-4 rounded-xl shadow-lg border text-xs font-semibold backdrop-blur-md text-white transition duration-300 animate-fade-in`;
     
@@ -297,7 +343,7 @@ function showToast(message, type = "success") {
     `;
     
     container.appendChild(toast);
-    lucide.createIcons();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
     
     setTimeout(() => {
         toast.style.opacity = '0';
@@ -311,34 +357,39 @@ function setupNotifications() {
     const dropdown = document.getElementById("notifications-dropdown");
     const markReadBtn = document.getElementById("mark-read-btn");
     
-    toggleBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        dropdown.classList.toggle("hidden");
-        if (!dropdown.classList.contains("hidden")) {
-            loadNotificationsList();
-        }
-    });
+    if (toggleBtn && dropdown) {
+        toggleBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle("hidden");
+            if (!dropdown.classList.contains("hidden")) {
+                loadNotificationsList();
+            }
+        });
 
-    document.addEventListener("click", () => {
-        dropdown.classList.add("hidden");
-    });
-    
-    dropdown.addEventListener("click", (e) => e.stopPropagation());
+        document.addEventListener("click", () => {
+            dropdown.classList.add("hidden");
+        });
+        
+        dropdown.addEventListener("click", (e) => e.stopPropagation());
+    }
 
-    markReadBtn.addEventListener("click", async () => {
-        try {
-            await fetch(`${API_URL}/api/notifications/read?token=${token}`, { method: "POST" });
-            loadNotificationsList();
-            showToast("Notifications marked as read", "info");
-        } catch (err) {
-            console.error(err);
-        }
-    });
+    if (markReadBtn) {
+        markReadBtn.addEventListener("click", async () => {
+            try {
+                await fetch(`${API_URL}/api/notifications/read?token=${token}`, { method: "POST" });
+                loadNotificationsList();
+                showToast("Notifications marked as read", "info");
+            } catch (err) {
+                console.error(err);
+            }
+        });
+    }
 }
 
 async function loadNotificationsList() {
     const listContainer = document.getElementById("notifications-list");
     const badge = document.getElementById("notification-badge");
+    if (!listContainer) return;
     
     try {
         const res = await fetch(`${API_URL}/api/notifications?token=${token}`);
@@ -346,10 +397,9 @@ async function loadNotificationsList() {
         const notifications = await res.json();
         
         const unreadCount = notifications.filter(n => !n.is_read).length;
-        if (unreadCount > 0) {
-            badge.classList.remove("hidden");
-        } else {
-            badge.classList.add("hidden");
+        if (badge) {
+            if (unreadCount > 0) badge.classList.remove("hidden");
+            else badge.classList.add("hidden");
         }
         
         if (notifications.length === 0) {
@@ -394,82 +444,81 @@ async function loadDashboardData() {
         if (!res.ok) throw new Error("Dashboard fetch failed");
         const stats = await res.json();
         
-        // Update user profile gamification stats in local state
         currentUser.eco_points = stats.eco_points;
         currentUser.level = stats.level;
         currentUser.badge = stats.badge;
         
-        // Render general dashboard stats
-        document.getElementById("stat-uploads").innerText = stats.total_uploads;
-        document.getElementById("stat-weight").innerText = `${stats.today_recycling_g} g`;
-        document.getElementById("stat-co2").innerText = `${stats.carbon_saved_kg} kg`;
-        document.getElementById("stat-revenue").innerText = `₹${stats.revenue_earned_inr}`;
+        const setTxt = (id, txt) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = txt;
+        };
+
+        setTxt("stat-uploads", stats.total_uploads);
+        setTxt("stat-weight", `${stats.today_recycling_g} g`);
+        setTxt("stat-co2", `${stats.carbon_saved_kg} kg`);
+        setTxt("stat-revenue", `₹${stats.revenue_earned_inr}`);
         
-        // Gamification metrics
-        document.getElementById("user-points-total").innerText = `${stats.eco_points} Eco Points`;
-        document.getElementById("gamification-badge").innerText = stats.badge;
-        document.getElementById("badge-pill").innerText = stats.badge;
-        document.getElementById("gamification-level").innerText = stats.level;
+        setTxt("user-points-total", `${stats.eco_points} Eco Points`);
+        setTxt("gamification-badge", stats.badge);
+        setTxt("badge-pill", stats.badge);
+        setTxt("gamification-level", stats.level);
         
-        // Level calculations
         const pointsInThisLevel = stats.eco_points % 100;
-        const percentProgress = pointsInThisLevel;
-        document.getElementById("level-progress-bar").style.width = `${percentProgress}%`;
-        document.getElementById("points-to-next").innerText = `${pointsInThisLevel} / 100 points to Level ${stats.level + 1}`;
-        document.getElementById("level-text-prev").innerText = `Level ${stats.level}`;
-        document.getElementById("level-text-next").innerText = `Level ${stats.level + 1}`;
+        const progressEl = document.getElementById("level-progress-bar");
+        if (progressEl) progressEl.style.width = `${pointsInThisLevel}%`;
+
+        setTxt("points-to-next", `${pointsInThisLevel} / 100 points to Level ${stats.level + 1}`);
+        setTxt("level-text-prev", `Level ${stats.level}`);
+        setTxt("level-text-next", `Level ${stats.level + 1}`);
         
-        // Populate leaderboard list
         const leaderboardList = document.getElementById("leaderboard-list");
-        if (stats.leaderboard.length === 0) {
-            leaderboardList.innerHTML = `<p class="text-xs text-gray-500 text-center py-4">No users found.</p>`;
-        } else {
-            leaderboardList.innerHTML = stats.leaderboard.map((user, index) => `
-                <div class="flex items-center gap-3 p-2 border-b border-gray-200/10 last:border-b-0">
-                    <span class="text-sm font-black w-6 text-center ${index === 0 ? 'text-amber-500 text-lg' : 'text-gray-400'}">${index + 1}</span>
-                    <div class="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-xs uppercase">
-                        ${user.name.charAt(0)}
+        if (leaderboardList) {
+            if (stats.leaderboard.length === 0) {
+                leaderboardList.innerHTML = `<p class="text-xs text-gray-500 text-center py-4">No users found.</p>`;
+            } else {
+                leaderboardList.innerHTML = stats.leaderboard.map((user, index) => `
+                    <div class="flex items-center gap-3 p-2 border-b border-gray-200/10 last:border-b-0">
+                        <span class="text-sm font-black w-6 text-center ${index === 0 ? 'text-amber-500 text-lg' : 'text-gray-400'}">${index + 1}</span>
+                        <div class="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-xs uppercase">
+                            ${user.name.charAt(0)}
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="text-xs font-bold dark:text-white">${user.name}</h4>
+                            <span class="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold">${user.badge}</span>
+                        </div>
+                        <span class="text-xs font-extrabold text-emerald-600">${user.points} pts</span>
                     </div>
-                    <div class="flex-1">
-                        <h4 class="text-xs font-bold dark:text-white">${user.name}</h4>
-                        <span class="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold">${user.badge}</span>
-                    </div>
-                    <span class="text-xs font-extrabold text-emerald-600">${user.points} pts</span>
-                </div>
-            `).join("");
+                `).join("");
+            }
         }
         
-        // Populate recent records list
         const recentTbody = document.getElementById("recent-records-tbody");
-        if (stats.recent_records.length === 0) {
-            recentTbody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="py-6 text-center text-gray-400">No recycling activity recorded yet.</td>
-                </tr>
-            `;
-        } else {
-            recentTbody.innerHTML = stats.recent_records.map(r => `
-                <tr class="border-b border-gray-200/10">
-                    <td class="py-2.5 font-semibold dark:text-white">${r.category}</td>
-                    <td class="py-2.5 text-gray-500">${r.weight_g} g</td>
-                    <td class="py-2.5 text-gray-500">${r.carbon_saved_kg} kg</td>
-                    <td class="py-2.5">
-                        <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full ${getStatusPillClass(r.status)}">
-                            ${r.status}
-                        </span>
-                    </td>
-                    <td class="py-2.5 text-right font-extrabold text-emerald-600">₹${r.value_inr}</td>
-                </tr>
-            `).join("");
+        if (recentTbody) {
+            if (stats.recent_records.length === 0) {
+                recentTbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-6 text-center text-gray-400">No recycling activity recorded yet.</td>
+                    </tr>
+                `;
+            } else {
+                recentTbody.innerHTML = stats.recent_records.map(r => `
+                    <tr class="border-b border-gray-200/10">
+                        <td class="py-2.5 font-semibold dark:text-white">${r.category}</td>
+                        <td class="py-2.5 text-gray-500">${r.weight_g} g</td>
+                        <td class="py-2.5 text-gray-500">${r.carbon_saved_kg} kg</td>
+                        <td class="py-2.5">
+                            <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full ${getStatusPillClass(r.status)}">
+                                ${r.status}
+                            </span>
+                        </td>
+                        <td class="py-2.5 text-right font-extrabold text-emerald-600">₹${r.value_inr}</td>
+                    </tr>
+                `).join("");
+            }
         }
         
-        // Render Weekly trends chart
         renderWeeklyCarbonChart(stats.weekly_analytics);
-        
-        // Render Monthly distribution chart
         renderMonthlyDistributionChart(stats.monthly_analytics);
-        
-        // Refresh notifications badge
         loadNotificationsList();
         
     } catch (err) {
@@ -485,7 +534,9 @@ function getStatusPillClass(status) {
 
 // Chart.js renderings
 function renderWeeklyCarbonChart(data) {
-    const ctx = document.getElementById("weeklyCarbonChart").getContext("2d");
+    const el = document.getElementById("weeklyCarbonChart");
+    if (!el || typeof Chart === 'undefined') return;
+    const ctx = el.getContext("2d");
     if (carbonTrendChart) carbonTrendChart.destroy();
     
     const isDark = document.documentElement.classList.contains("dark");
@@ -495,10 +546,10 @@ function renderWeeklyCarbonChart(data) {
     carbonTrendChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: data.dates,
+            labels: data ? data.dates : [],
             datasets: [{
                 label: 'CO₂ Saved (kg)',
-                data: data.carbon,
+                data: data ? data.carbon : [],
                 borderColor: '#10b981',
                 backgroundColor: 'rgba(16, 185, 129, 0.1)',
                 borderWidth: 3,
@@ -510,9 +561,7 @@ function renderWeeklyCarbonChart(data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
+            plugins: { legend: { display: false } },
             scales: {
                 x: {
                     grid: { color: gridColor },
@@ -528,30 +577,25 @@ function renderWeeklyCarbonChart(data) {
 }
 
 function renderMonthlyDistributionChart(data) {
-    const ctx = document.getElementById("categoryDistributionChart").getContext("2d");
+    const el = document.getElementById("categoryDistributionChart");
+    if (!el || typeof Chart === 'undefined') return;
+    const ctx = el.getContext("2d");
     if (wastePieChart) wastePieChart.destroy();
     
     const isDark = document.documentElement.classList.contains("dark");
     const legendColor = isDark ? "#e5e7eb" : "#374151";
     
-    // Only show categories that have weights > 0 to keep chart tidy
-    const hasData = data.weights.some(w => w > 0);
-    const chartWeights = hasData ? data.weights : [1, 1, 1, 1, 1, 1];
+    const weights = data ? data.weights : [];
+    const hasData = weights.some(w => w > 0);
+    const chartWeights = hasData ? weights : [1, 1, 1, 1, 1, 1];
     
     wastePieChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: data.categories,
+            labels: data ? data.categories : ["Plastic", "Paper", "Metal", "Glass", "Organic", "E-waste"],
             datasets: [{
                 data: chartWeights,
-                backgroundColor: [
-                    '#3b82f6', // Plastic: Blue
-                    '#eab308', // Paper: Yellow
-                    '#94a3b8', // Metal: Slate
-                    '#22c55e', // Glass: Green
-                    '#f97316', // Organic: Orange
-                    '#a855f7'  // E-waste: Purple
-                ],
+                backgroundColor: ['#3b82f6', '#eab308', '#94a3b8', '#22c55e', '#f97316', '#a855f7'],
                 borderWidth: isDark ? 2 : 1,
                 borderColor: isDark ? '#0f172a' : '#fff'
             }]
@@ -585,7 +629,8 @@ function setupImageUpload() {
     const weightVal = document.getElementById("weight-slider-val");
     const confirmBtn = document.getElementById("confirm-recycling-btn");
     
-    // Drag events
+    if (!dropArea || !fileInput) return;
+
     dropArea.addEventListener("click", () => fileInput.click());
     
     dropArea.addEventListener("dragover", (e) => {
@@ -612,119 +657,130 @@ function setupImageUpload() {
         const file = fileInput.files[0];
         if (!file) return;
         
-        // Preview image
         const reader = new FileReader();
         reader.onload = (e) => {
-            document.getElementById("uploaded-image").src = e.target.result;
-            document.getElementById("preview-container").classList.remove("hidden");
-            document.getElementById("drop-placeholder").classList.add("hidden");
-            processBtn.removeAttribute("disabled");
-            resetBtn.classList.remove("hidden");
+            const img = document.getElementById("uploaded-image");
+            const preview = document.getElementById("preview-container");
+            const placeholder = document.getElementById("drop-placeholder");
+            if (img) img.src = e.target.result;
+            if (preview) preview.classList.remove("hidden");
+            if (placeholder) placeholder.classList.add("hidden");
+            if (processBtn) processBtn.removeAttribute("disabled");
+            if (resetBtn) resetBtn.classList.remove("hidden");
         };
         reader.readAsDataURL(file);
     }
     
-    resetBtn.addEventListener("click", resetUploadForm);
+    if (resetBtn) resetBtn.addEventListener("click", resetUploadForm);
     
-    processBtn.addEventListener("click", async () => {
-        const file = fileInput.files[0];
-        if (!file) return;
-        
-        processBtn.innerText = "Analyzing...";
-        processBtn.setAttribute("disabled", "true");
-        
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("token", token);
-        
-        try {
-            const res = await fetch(`${API_URL}/api/waste/upload`, {
-                method: "POST",
-                body: formData
-            });
-            if (!res.ok) throw new Error("Image analysis failed");
+    if (processBtn) {
+        processBtn.addEventListener("click", async () => {
+            const file = fileInput.files[0];
+            if (!file) return;
             
-            const data = await res.json();
-            activeUploadData = data;
+            processBtn.innerText = "Analyzing...";
+            processBtn.setAttribute("disabled", "true");
             
-            // Render bounding box
-            const box = data.bounding_box; // [x, y, w, h]
-            const bboxEl = document.getElementById("bounding-box");
-            bboxEl.style.left = `${box[0]}px`;
-            bboxEl.style.top = `${box[1]}px`;
-            bboxEl.style.width = `${box[2]}px`;
-            bboxEl.style.height = `${box[3]}px`;
-            bboxEl.classList.remove("hidden");
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("token", token);
             
-            // Render details
-            categorySelect.value = data.category;
-            weightSlider.value = data.weight_g;
-            weightVal.innerText = `${data.weight_g}g`;
-            
-            document.getElementById("ai-confidence").innerText = `${Math.round(data.confidence * 100)}% Confident`;
-            document.getElementById("ai-confidence").classList.remove("hidden");
-            
+            try {
+                const res = await fetch(`${API_URL}/api/waste/upload`, {
+                    method: "POST",
+                    body: formData
+                });
+                if (!res.ok) throw new Error("Image analysis failed");
+                
+                const data = await res.json();
+                activeUploadData = data;
+                
+                const box = data.bounding_box || [0, 0, 0, 0];
+                const bboxEl = document.getElementById("bounding-box");
+                if (bboxEl) {
+                    bboxEl.style.left = `${box[0]}px`;
+                    bboxEl.style.top = `${box[1]}px`;
+                    bboxEl.style.width = `${box[2]}px`;
+                    bboxEl.style.height = `${box[3]}px`;
+                    bboxEl.classList.remove("hidden");
+                }
+                
+                if (categorySelect) categorySelect.value = data.category;
+                if (weightSlider) weightSlider.value = data.weight_g;
+                if (weightVal) weightVal.innerText = `${data.weight_g}g`;
+                
+                const confEl = document.getElementById("ai-confidence");
+                if (confEl) {
+                    confEl.innerText = `${Math.round((data.confidence || 0.95) * 100)}% Confident`;
+                    confEl.classList.remove("hidden");
+                }
+                
+                updateAIFormEstimations();
+                
+                const resultsPanel = document.getElementById("ai-results-panel");
+                if (resultsPanel) resultsPanel.classList.remove("opacity-50", "pointer-events-none");
+                
+                processBtn.innerText = "Scan Completed";
+                showToast("AI Scanning complete!", "success");
+                
+            } catch (err) {
+                showToast(err.message, "error");
+                processBtn.innerText = "Scan Image";
+                processBtn.removeAttribute("disabled");
+            }
+        });
+    }
+    
+    if (categorySelect) {
+        categorySelect.addEventListener("change", () => {
+            if (!activeUploadData) return;
+            activeUploadData.category = categorySelect.value;
             updateAIFormEstimations();
-            
-            // Enable side panel
-            const resultsPanel = document.getElementById("ai-results-panel");
-            resultsPanel.classList.remove("opacity-50", "pointer-events-none");
-            
-            processBtn.innerText = "Scan Completed";
-            showToast("AI Scanning complete!", "success");
-            
-        } catch (err) {
-            showToast(err.message, "error");
-            processBtn.innerText = "Scan Image";
-            processBtn.removeAttribute("disabled");
-        }
-    });
+        });
+    }
     
-    // Sliders and edits listeners
-    categorySelect.addEventListener("change", () => {
-        if (!activeUploadData) return;
-        activeUploadData.category = categorySelect.value;
-        updateAIFormEstimations();
-    });
+    if (weightSlider) {
+        weightSlider.addEventListener("input", () => {
+            if (!activeUploadData) return;
+            if (weightVal) weightVal.innerText = `${weightSlider.value}g`;
+            activeUploadData.weight_g = Number(weightSlider.value);
+            updateAIFormEstimations();
+        });
+    }
     
-    weightSlider.addEventListener("input", () => {
-        if (!activeUploadData) return;
-        weightVal.innerText = `${weightSlider.value}g`;
-        activeUploadData.weight_g = Number(weightSlider.value);
-        updateAIFormEstimations();
-    });
-    
-    confirmBtn.addEventListener("click", async () => {
-        if (!activeUploadData) return;
-        
-        confirmBtn.innerText = "Submitting...";
-        confirmBtn.setAttribute("disabled", "true");
-        
-        const bodyFormData = new FormData();
-        bodyFormData.append("token", token);
-        bodyFormData.append("category", activeUploadData.category);
-        bodyFormData.append("weight_g", activeUploadData.weight_g);
-        bodyFormData.append("carbon_saved_kg", activeUploadData.carbon_saved_kg);
-        bodyFormData.append("value_inr", activeUploadData.value_inr);
-        bodyFormData.append("image_url", activeUploadData.image_url);
-        bodyFormData.append("confidence", activeUploadData.confidence);
-        
-        try {
-            const res = await fetch(`${API_URL}/api/waste/confirm`, {
-                method: "POST",
-                body: bodyFormData
-            });
-            if (!res.ok) throw new Error("Recycling confirmation failed");
+    if (confirmBtn) {
+        confirmBtn.addEventListener("click", async () => {
+            if (!activeUploadData) return;
             
-            showToast("Submission sent! Awaiting Admin verification.", "success");
-            resetUploadForm();
-            showScreen("dashboard");
-        } catch (err) {
-            showToast(err.message, "error");
-            confirmBtn.innerText = "Confirm and Submit Recycling";
-            confirmBtn.removeAttribute("disabled");
-        }
-    });
+            confirmBtn.innerText = "Submitting...";
+            confirmBtn.setAttribute("disabled", "true");
+            
+            const bodyFormData = new FormData();
+            bodyFormData.append("token", token);
+            bodyFormData.append("category", activeUploadData.category);
+            bodyFormData.append("weight_g", activeUploadData.weight_g);
+            bodyFormData.append("carbon_saved_kg", activeUploadData.carbon_saved_kg);
+            bodyFormData.append("value_inr", activeUploadData.value_inr);
+            bodyFormData.append("image_url", activeUploadData.image_url || "");
+            bodyFormData.append("confidence", activeUploadData.confidence || 0.95);
+            
+            try {
+                const res = await fetch(`${API_URL}/api/waste/confirm`, {
+                    method: "POST",
+                    body: bodyFormData
+                });
+                if (!res.ok) throw new Error("Recycling confirmation failed");
+                
+                showToast("Submission sent! Awaiting Admin verification.", "success");
+                resetUploadForm();
+                showScreen("dashboard");
+            } catch (err) {
+                showToast(err.message, "error");
+                confirmBtn.innerText = "Confirm and Submit Recycling";
+                confirmBtn.removeAttribute("disabled");
+            }
+        });
+    }
 }
 
 function updateAIFormEstimations() {
@@ -735,46 +791,59 @@ function updateAIFormEstimations() {
     
     const rateConstants = ratesMap[category] || { rate_per_kg: 10, carbon_saved_per_kg: 1 };
     
-    // Calculate values
     activeUploadData.carbon_saved_kg = roundValue((weight_g / 1000.0) * rateConstants.carbon_saved_per_kg, 3);
     activeUploadData.value_inr = roundValue((weight_g / 1000.0) * rateConstants.rate_per_kg, 2);
     
-    const awardPoints = DEFAULT_POINTS[category] || 10;
+    const awardPoints = DEFAULT_POINTS[category] !== undefined ? DEFAULT_POINTS[category] : 10;
     activeUploadData.points = awardPoints;
     
-    // Update labels
-    document.getElementById("ai-carbon-saved").innerText = `${activeUploadData.carbon_saved_kg} kg CO₂`;
-    document.getElementById("ai-recycling-value").innerText = `₹${activeUploadData.value_inr}`;
-    document.getElementById("ai-points-award").innerText = awardPoints;
+    const setTxt = (id, txt) => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = txt;
+    };
+
+    setTxt("ai-carbon-saved", `${activeUploadData.carbon_saved_kg} kg CO₂`);
+    setTxt("ai-recycling-value", `₹${activeUploadData.value_inr}`);
+    setTxt("ai-points-award", awardPoints);
 }
 
 function resetUploadForm() {
-    document.getElementById("file-input").value = "";
-    document.getElementById("uploaded-image").src = "";
-    document.getElementById("preview-container").classList.add("hidden");
-    document.getElementById("bounding-box").classList.add("hidden");
-    document.getElementById("drop-placeholder").classList.remove("hidden");
-    
+    const fileInput = document.getElementById("file-input");
+    const uploadedImg = document.getElementById("uploaded-image");
+    const preview = document.getElementById("preview-container");
+    const bbox = document.getElementById("bounding-box");
+    const placeholder = document.getElementById("drop-placeholder");
     const processBtn = document.getElementById("process-image-btn");
-    processBtn.innerText = "Scan Image";
-    processBtn.setAttribute("disabled", "true");
-    
-    document.getElementById("reset-upload-btn").classList.add("hidden");
-    document.getElementById("ai-confidence").classList.add("hidden");
-    
+    const resetBtn = document.getElementById("reset-upload-btn");
+    const confEl = document.getElementById("ai-confidence");
     const resultsPanel = document.getElementById("ai-results-panel");
-    resultsPanel.classList.add("opacity-50", "pointer-events-none");
-    
     const confirmBtn = document.getElementById("confirm-recycling-btn");
-    confirmBtn.innerText = "Confirm and Submit Recycling";
-    confirmBtn.removeAttribute("disabled");
+
+    if (fileInput) fileInput.value = "";
+    if (uploadedImg) uploadedImg.src = "";
+    if (preview) preview.classList.add("hidden");
+    if (bbox) bbox.classList.add("hidden");
+    if (placeholder) placeholder.classList.remove("hidden");
+    
+    if (processBtn) {
+        processBtn.innerText = "Scan Image";
+        processBtn.setAttribute("disabled", "true");
+    }
+    
+    if (resetBtn) resetBtn.classList.add("hidden");
+    if (confEl) confEl.classList.add("hidden");
+    if (resultsPanel) resultsPanel.classList.add("opacity-50", "pointer-events-none");
+    
+    if (confirmBtn) {
+        confirmBtn.innerText = "Confirm and Submit Recycling";
+        confirmBtn.removeAttribute("disabled");
+    }
     
     activeUploadData = null;
 }
 
 // Activity logs list
 async function loadHistoryData() {
-    const tableBody = document.getElementById("history-table-body");
     try {
         const res = await fetch(`${API_URL}/api/waste/history?token=${token}`);
         if (!res.ok) throw new Error("History fetch failed");
@@ -787,13 +856,42 @@ async function loadHistoryData() {
     }
 }
 
+function setupHistoryControls() {
+    const searchInput = document.getElementById("history-search");
+    const catFilter = document.getElementById("history-filter-category");
+    const statusFilter = document.getElementById("history-filter-status");
+    const prevBtn = document.getElementById("history-prev-btn");
+    const nextBtn = document.getElementById("history-next-btn");
+
+    if (searchInput) searchInput.addEventListener("input", renderHistoryTable);
+    if (catFilter) catFilter.addEventListener("change", renderHistoryTable);
+    if (statusFilter) statusFilter.addEventListener("change", renderHistoryTable);
+
+    if (prevBtn) {
+        prevBtn.addEventListener("click", () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderHistoryTable();
+            }
+        });
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener("click", () => {
+            currentPage++;
+            renderHistoryTable();
+        });
+    }
+}
+
 function renderHistoryTable() {
     const tableBody = document.getElementById("history-table-body");
-    const searchVal = document.getElementById("history-search").value.toLowerCase();
-    const filterCat = document.getElementById("history-filter-category").value;
-    const filterStatus = document.getElementById("history-filter-status").value;
+    if (!tableBody) return;
+
+    const searchVal = (document.getElementById("history-search")?.value || "").toLowerCase();
+    const filterCat = document.getElementById("history-filter-category")?.value || "";
+    const filterStatus = document.getElementById("history-filter-status")?.value || "";
     
-    // Filter records locally
     const filtered = historyRecords.filter(r => {
         const matchSearch = r.category.toLowerCase().includes(searchVal);
         const matchCat = filterCat === "" || r.category === filterCat;
@@ -801,17 +899,19 @@ function renderHistoryTable() {
         return matchSearch && matchCat && matchStatus;
     });
     
-    // Pagination slicing
     const totalPages = Math.ceil(filtered.length / recordsPerPage) || 1;
     if (currentPage > totalPages) currentPage = totalPages;
     
     const startIndex = (currentPage - 1) * recordsPerPage;
-    const endIndex = startIndex + recordsPerPage;
-    const paginated = filtered.slice(startIndex, endIndex);
+    const paginated = filtered.slice(startIndex, startIndex + recordsPerPage);
     
-    document.getElementById("history-page-info").innerText = `Showing page ${currentPage} of ${totalPages}`;
-    document.getElementById("history-prev-btn").disabled = currentPage === 1;
-    document.getElementById("history-next-btn").disabled = currentPage === totalPages;
+    const pageInfo = document.getElementById("history-page-info");
+    const prevBtn = document.getElementById("history-prev-btn");
+    const nextBtn = document.getElementById("history-next-btn");
+
+    if (pageInfo) pageInfo.innerText = `Showing page ${currentPage} of ${totalPages}`;
+    if (prevBtn) prevBtn.disabled = currentPage === 1;
+    if (nextBtn) nextBtn.disabled = currentPage === totalPages;
     
     if (paginated.length === 0) {
         tableBody.innerHTML = `
@@ -823,63 +923,254 @@ function renderHistoryTable() {
     }
     
     tableBody.innerHTML = paginated.map(r => `
-        <tr class="hover:bg-emerald-500/5 transition">
+        <tr class="hover:bg-emerald-500/5 transition border-b border-gray-200/10">
             <td class="py-3 px-4 font-medium dark:text-white">${new Date(r.created_at).toLocaleDateString()}</td>
-            <td class="py-3 px-4">
-                <button onclick="previewWasteImage('${r.image_path}', '${r.category}', ${r.weight_g}, ${r.confidence})" class="p-1 bg-gray-100 hover:bg-emerald-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg text-emerald-600 transition">
-                    <i data-lucide="image" class="w-4 h-4"></i>
-                </button>
-            </td>
-            <td class="py-3 px-4 font-bold dark:text-white">${r.category}</td>
+            <td class="py-3 px-4 font-semibold text-emerald-600">${r.category}</td>
             <td class="py-3 px-4 text-gray-500">${r.weight_g} g</td>
             <td class="py-3 px-4 text-gray-500">${r.carbon_saved_kg} kg</td>
-            <td class="py-3 px-4 font-bold text-emerald-600">₹${r.value_inr}</td>
+            <td class="py-3 px-4 font-extrabold text-emerald-600">₹${r.value_inr}</td>
             <td class="py-3 px-4">
-                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full ${getStatusPillClass(r.status)}">
+                <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full ${getStatusPillClass(r.status)}">
                     ${r.status}
                 </span>
             </td>
+            <td class="py-3 px-4 text-right">
+                <button onclick="downloadSingleReceipt('${r.id}')" class="p-1 text-gray-400 hover:text-emerald-500 transition">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                </button>
+            </td>
         </tr>
     `).join("");
-    
-    lucide.createIcons();
-    
-    // Pagination event bindings
-    document.getElementById("history-prev-btn").onclick = () => {
-        if (currentPage > 1) {
-            currentPage--;
-            renderHistoryTable();
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// Chat Assistant Module
+function setupChatAssistant() {
+    const chatInput = document.getElementById("chat-input");
+    const sendBtn = document.getElementById("chat-send-btn");
+    const chatBox = document.getElementById("chat-messages");
+
+    if (!chatInput || !sendBtn || !chatBox) return;
+
+    const sendMessage = async () => {
+        const message = chatInput.value.trim();
+        if (!message) return;
+
+        appendChatMessage("user", message);
+        chatInput.value = "";
+
+        try {
+            const res = await fetch(`${API_URL}/api/chat`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message, token })
+            });
+            const data = await res.json();
+            appendChatMessage("assistant", data.response || "I am having trouble answering that right now.");
+        } catch (err) {
+            appendChatMessage("assistant", "Sorry, I am unable to connect to the assistant service.");
         }
     };
-    document.getElementById("history-next-btn").onclick = () => {
-        if (currentPage < totalPages) {
-            currentPage++;
-            renderHistoryTable();
-        }
-    };
-    
-    // Filter/search event attachments (once)
-    if (!tableBody.dataset.eventsAttached) {
-        document.getElementById("history-search").oninput = () => { currentPage = 1; renderHistoryTable(); };
-        document.getElementById("history-filter-category").onchange = () => { currentPage = 1; renderHistoryTable(); };
-        document.getElementById("history-filter-status").onchange = () => { currentPage = 1; renderHistoryTable(); };
-        tableBody.dataset.eventsAttached = "true";
+
+    sendBtn.addEventListener("click", sendMessage);
+    chatInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+    });
+}
+
+function appendChatMessage(role, text) {
+    const chatBox = document.getElementById("chat-messages");
+    if (!chatBox) return;
+
+    const isUser = role === "user";
+    const msgDiv = document.createElement("div");
+    msgDiv.className = `flex ${isUser ? 'justify-end' : 'justify-start'} mb-3`;
+    msgDiv.innerHTML = `
+        <div class="max-w-[80%] p-3 rounded-2xl text-xs font-medium ${isUser ? 'bg-emerald-600 text-white rounded-br-none' : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-bl-none'}">
+            ${text}
+        </div>
+    `;
+    chatBox.appendChild(msgDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// Admin Portal Handlers
+function setupAdminListeners() {
+    const verifyTab = document.getElementById("admin-tab-verify");
+    const ratesTab = document.getElementById("admin-tab-rates");
+
+    if (verifyTab) {
+        verifyTab.addEventListener("click", () => {
+            adminTab = "verify";
+            loadAdminData();
+        });
+    }
+
+    if (ratesTab) {
+        ratesTab.addEventListener("click", () => {
+            adminTab = "rates";
+            loadAdminData();
+        });
     }
 }
 
-// Preview Modal details
-window.previewWasteImage = function(url, category, weight, confidence) {
-    const modal = document.getElementById("image-modal");
-    document.getElementById("image-modal-src").src = API_URL + url;
-    document.getElementById("image-modal-title").innerText = `Scan Preview: ${category}`;
-    document.getElementById("image-modal-details").innerText = `Weight: ${weight}g | Confidence: ${Math.round(confidence * 100)}%`;
-    modal.classList.remove("hidden");
-    lucide.createIcons();
-};
+async function loadAdminData() {
+    if (!currentUser || !currentUser.is_admin) return;
 
-document.getElementById("image-modal-close").addEventListener("click", () => {
-    document.getElementById("image-modal").classList.add("hidden");
-});
+    const verifySec = document.getElementById("admin-section-verify");
+    const ratesSec = document.getElementById("admin-section-rates");
+
+    if (adminTab === "verify") {
+        if (verifySec) verifySec.classList.remove("hidden");
+        if (ratesSec) ratesSec.classList.add("hidden");
+        await loadAdminVerifications();
+    } else {
+        if (verifySec) verifySec.classList.add("hidden");
+        if (ratesSec) ratesSec.classList.remove("hidden");
+        await loadAdminRates();
+    }
+}
+
+async function loadAdminVerifications() {
+    const tableBody = document.getElementById("admin-verify-tbody");
+    if (!tableBody) return;
+
+    try {
+        const res = await fetch(`${API_URL}/api/admin/pending?token=${token}`);
+        const data = await res.json();
+
+        if (data.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-gray-400">No pending verification requests.</td></tr>`;
+            return;
+        }
+
+        tableBody.innerHTML = data.map(item => `
+            <tr class="border-b border-gray-200/10">
+                <td class="py-3 px-4 dark:text-white font-medium">${item.user_name}</td>
+                <td class="py-3 px-4 text-emerald-600 font-semibold">${item.category}</td>
+                <td class="py-3 px-4 text-gray-500">${item.weight_g} g</td>
+                <td class="py-3 px-4 text-gray-500">₹${item.value_inr}</td>
+                <td class="py-3 px-4">${new Date(item.created_at).toLocaleDateString()}</td>
+                <td class="py-3 px-4 text-right">
+                    <button onclick="verifyRecord('${item.id}', 'Approved')" class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold mr-2 hover:bg-emerald-700">Approve</button>
+                    <button onclick="verifyRecord('${item.id}', 'Rejected')" class="px-3 py-1 bg-rose-600 text-white rounded-lg text-xs font-bold hover:bg-rose-700">Reject</button>
+                </td>
+            </tr>
+        `).join("");
+    } catch (err) {
+        showToast("Failed to load admin verifications", "error");
+    }
+}
+
+async function verifyRecord(recordId, status) {
+    try {
+        const res = await fetch(`${API_URL}/api/admin/verify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ record_id: recordId, status, token })
+        });
+        if (!res.ok) throw new Error("Action failed");
+        showToast(`Record ${status.toLowerCase()} successfully`, "success");
+        loadAdminVerifications();
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+}
+
+async function loadAdminRates() {
+    const container = document.getElementById("admin-rates-container");
+    if (!container) return;
+
+    await fetchRates();
+    container.innerHTML = Object.keys(ratesMap).map(cat => `
+        <div class="p-4 border border-gray-200/10 rounded-xl flex items-center justify-between">
+            <div>
+                <h4 class="font-bold text-sm dark:text-white">${cat}</h4>
+                <p class="text-xs text-gray-400">Carbon Saved: ${ratesMap[cat].carbon_saved_per_kg} kg/kg</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-400">₹/kg</span>
+                <input type="number" id="rate-val-${cat}" value="${ratesMap[cat].rate_per_kg}" class="w-20 p-1 text-xs border border-gray-300 dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white">
+                <button onclick="updateCategoryRate('${cat}')" class="px-3 py-1 bg-emerald-600 text-white text-xs font-bold rounded hover:bg-emerald-700">Save</button>
+            </div>
+        </div>
+    `).join("");
+}
+
+async function updateCategoryRate(category) {
+    const valInput = document.getElementById(`rate-val-${category}`);
+    if (!valInput) return;
+
+    try {
+        const res = await fetch(`${API_URL}/api/admin/rates`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                category,
+                rate_per_kg: parseFloat(valInput.value),
+                token
+            })
+        });
+        if (!res.ok) throw new Error("Failed to update rate");
+        showToast(`${category} rate updated!`, "success");
+        fetchRates();
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+}
+
+// Reports & Export Functions
+function setupReportDownload() {
+    const reportBtn = document.getElementById("download-report-btn");
+    if (reportBtn) {
+        reportBtn.addEventListener("click", downloadPDFReport);
+    }
+}
+
+async function downloadPDFReport() {
+    try {
+        showToast("Generating PDF report...", "info");
+        const res = await fetch(`${API_URL}/api/reports/summary?token=${token}`);
+        if (!res.ok) throw new Error("Report generation failed");
+        
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `EcoTracker_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        showToast("Report downloaded successfully!", "success");
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+}
+
+async function downloadSingleReceipt(recordId) {
+    try {
+        showToast("Preparing receipt...", "info");
+        const res = await fetch(`${API_URL}/api/reports/receipt/${recordId}?token=${token}`);
+        if (!res.ok) throw new Error("Receipt download failed");
+        
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Receipt_${recordId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+}
+
+// Utility Math Calculations
+function roundValue(val, decimals = 2) {
+    return Number(Math.round(parseFloat(val + 'e' + decimals)) + 'e-' + decimals) || 0;
+}
 
 // Chatbot Interface
 function setupChatAssistant() {
@@ -949,198 +1240,6 @@ function appendChatBubble(text, sender) {
     chatMessages.appendChild(bubble);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
-
-// Admin Panel operations
-function setupAdminListeners() {
-    const tabVerify = document.getElementById("admin-tab-verify");
-    const tabRates = document.getElementById("admin-tab-rates");
-    const tabUsers = document.getElementById("admin-tab-users");
-    
-    const panelVerify = document.getElementById("admin-panel-verify");
-    const panelRates = document.getElementById("admin-panel-rates");
-    const panelUsers = document.getElementById("admin-panel-users");
-    
-    const rateForm = document.getElementById("rate-update-form");
-    
-    const tabMapping = [
-        { btn: tabVerify, panel: panelVerify, name: "verify" },
-        { btn: tabRates, panel: panelRates, name: "rates" },
-        { btn: tabUsers, panel: panelUsers, name: "users" }
-    ];
-    
-    tabMapping.forEach(tab => {
-        tab.btn.addEventListener("click", () => {
-            tabMapping.forEach(x => {
-                x.btn.classList.replace("border-emerald-600", "border-transparent");
-                x.btn.classList.replace("text-emerald-600", "text-gray-500");
-                x.panel.classList.add("hidden");
-            });
-            
-            tab.btn.classList.replace("border-transparent", "border-emerald-600");
-            tab.btn.classList.replace("text-gray-500", "text-emerald-600");
-            tab.panel.classList.remove("hidden");
-            
-            adminTab = tab.name;
-            loadAdminTabDetails();
-        });
-    });
-    
-    rateForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const category = document.getElementById("rate-update-category").value;
-        const rate_per_kg = Number(document.getElementById("rate-update-price").value);
-        const carbon_saved_per_kg = Number(document.getElementById("rate-update-co2").value);
-        
-        try {
-            const res = await fetch(`${API_URL}/api/admin/rates/update?token=${token}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ category, rate_per_kg, carbon_saved_per_kg })
-            });
-            if (!res.ok) throw new Error("Constants update failed");
-            
-            showToast("Recycling constants updated successfully!", "success");
-            loadAdminTabDetails();
-        } catch (err) {
-            showToast(err.message, "error");
-        }
-    });
-}
-
-async function loadAdminData() {
-    try {
-        const res = await fetch(`${API_URL}/api/admin/stats?token=${token}`);
-        if (!res.ok) return;
-        const stats = await res.json();
-        
-        document.getElementById("admin-stat-users").innerText = stats.total_users;
-        document.getElementById("admin-stat-uploads").innerText = stats.total_uploads;
-        document.getElementById("admin-stat-pending").innerText = stats.pending_approvals;
-        document.getElementById("admin-stat-co2").innerText = stats.total_carbon_saved_kg;
-        document.getElementById("admin-stat-revenue").innerText = stats.total_value_inr;
-        
-        loadAdminTabDetails();
-    } catch (err) {
-        console.error(err);
-    }
-}
-
-function loadAdminTabDetails() {
-    if (adminTab === "verify") {
-        loadAdminVerifyQueue();
-    } else if (adminTab === "rates") {
-        loadAdminRatesTable();
-    } else if (adminTab === "users") {
-        loadAdminUsersTable();
-    }
-}
-
-async function loadAdminVerifyQueue() {
-    const tbody = document.getElementById("admin-verify-tbody");
-    try {
-        const res = await fetch(`${API_URL}/api/admin/records?token=${token}`);
-        if (!res.ok) return;
-        const records = await res.json();
-        
-        const pending = records.filter(r => r.status === "Pending");
-        if (pending.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="py-8 text-center text-gray-400">No pending approvals remaining.</td>
-                </tr>
-            `;
-            return;
-        }
-        
-        tbody.innerHTML = pending.map(r => `
-            <tr class="hover:bg-emerald-500/5 transition">
-                <td class="py-3 px-4 font-semibold dark:text-white">${r.user_name}</td>
-                <td class="py-3 px-4 text-gray-500">${new Date(r.created_at).toLocaleDateString()}</td>
-                <td class="py-3 px-4">
-                    <button onclick="previewWasteImage('${r.image_path}', '${r.category}', ${r.weight_g}, ${r.confidence})" class="p-1 bg-gray-100 hover:bg-emerald-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg text-emerald-600 transition">
-                        <i data-lucide="image" class="w-4 h-4"></i>
-                    </button>
-                </td>
-                <td class="py-3 px-4 font-bold dark:text-white">${r.category}</td>
-                <td class="py-3 px-4 text-gray-500">${r.weight_g} g</td>
-                <td class="py-3 px-4 text-gray-500">+${DEFAULT_POINTS[r.category] || 10} pts</td>
-                <td class="py-3 px-4 flex gap-2 justify-center">
-                    <button onclick="adminVerifyAction(${r.id}, 'Approve')" class="py-1 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition">Approve</button>
-                    <button onclick="adminVerifyAction(${r.id}, 'Reject')" class="py-1 px-3 border border-rose-500 text-rose-500 hover:bg-rose-500/10 rounded-lg font-semibold transition">Reject</button>
-                </td>
-            </tr>
-        `).join("");
-        
-        lucide.createIcons();
-    } catch (err) {
-        console.error(err);
-    }
-}
-
-window.adminVerifyAction = async function(recordId, action) {
-    try {
-        const res = await fetch(`${API_URL}/api/admin/records/${recordId}/action?action=${action}&token=${token}`, {
-            method: "POST"
-        });
-        if (!res.ok) throw new Error("Action failed");
-        
-        showToast(`Record ${action}d successfully`, "info");
-        loadAdminData();
-    } catch (err) {
-        showToast(err.message, "error");
-    }
-};
-
-async function loadAdminRatesTable() {
-    const tbody = document.getElementById("admin-rates-tbody");
-    try {
-        const res = await fetch(`${API_URL}/api/admin/rates`);
-        if (!res.ok) return;
-        const rates = await res.json();
-        
-        tbody.innerHTML = rates.map(r => `
-            <tr class="hover:bg-emerald-500/5 transition">
-                <td class="py-2.5 font-semibold dark:text-white">${r.category}</td>
-                <td class="py-2.5 dark:text-gray-300">₹${r.rate_per_kg}</td>
-                <td class="py-2.5 dark:text-gray-300">${r.carbon_saved_per_kg} kg/kg</td>
-                <td class="py-2.5 text-right">
-                    <button onclick="populateRateForm('${r.category}', ${r.rate_per_kg}, ${r.carbon_saved_per_kg})" class="text-emerald-600 hover:underline">Select</button>
-                </td>
-            </tr>
-        `).join("");
-    } catch (err) {
-        console.error(err);
-    }
-}
-
-window.populateRateForm = function(category, rate, carbon) {
-    document.getElementById("rate-update-category").value = category;
-    document.getElementById("rate-update-price").value = rate;
-    document.getElementById("rate-update-co2").value = carbon;
-};
-
-async function loadAdminUsersTable() {
-    const tbody = document.getElementById("admin-users-tbody");
-    try {
-        const res = await fetch(`${API_URL}/api/admin/users?token=${token}`);
-        if (!res.ok) return;
-        const users = await res.json();
-        
-        tbody.innerHTML = users.map(u => `
-            <tr class="hover:bg-emerald-500/5 transition">
-                <td class="py-2.5 font-semibold dark:text-white">${u.name} ${u.is_admin ? '<span class="ml-2 px-1.5 py-0.5 bg-rose-500/10 text-rose-500 rounded text-[9px] font-bold">ADMIN</span>' : ''}</td>
-                <td class="py-2.5 text-gray-500">${u.email}</td>
-                <td class="py-2.5 font-bold text-emerald-600">${u.eco_points}</td>
-                <td class="py-2.5 dark:text-gray-300">${u.level}</td>
-                <td class="py-2.5 text-gray-500">${u.badge}</td>
-                <td class="py-2.5 text-gray-500">${u.is_admin ? 'Admin Account' : 'Standard User'}</td>
-            </tr>
-        `).join("");
-    } catch (err) {
-        console.error(err);
-    }
-}
-
 // PDF Report Downloader using jsPDF
 function setupReportDownload() {
     const downloadBtn = document.getElementById("download-report-btn");

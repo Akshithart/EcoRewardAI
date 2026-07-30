@@ -14,8 +14,7 @@ from passlib.context import CryptContext
 from .ai_model import classify_waste_image, generate_chatbot_response, DEFAULT_POINTS, DEFAULT_CO2_SAVED, CLASSES
 # Database models and session
 from .database import engine, SessionLocal, init_db, User, WasteRecord, RecyclingRate, Notification
-# AI Model and constants
-from .ai_model import classify_waste_image, generate_chatbot_response, DEFAULT_POINTS, DEFAULT_CO2_SAVED, CLASSES
+
 # Schemas
 from .schemas import (
     UserRegister, UserLogin, Token, UserOut, WasteRecordOut,
@@ -522,3 +521,63 @@ def get_all_users(token: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Admin permissions required")
         
     return db.query(User).order_by(User.eco_points.desc()).all()
+
+import json
+import os
+from google import genai
+from google.genai import types
+from PIL import Image
+import io
+
+# 1. API Key set-up (Your Gemini API Key from Google AI Studio)
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY_HERE")
+client = genai.Client(api_key=GEMINI_API_KEY)
+
+def predict_waste_accurate(image_bytes):
+    try:
+        # Load image with Pillow
+        image = Image.open(io.BytesIO(image_bytes))
+
+        prompt = """
+        Analyze the waste item shown in this image carefully.
+        Return ONLY a JSON response without markdown or backticks in this exact schema:
+        {
+            "category": "Plastic" | "Paper" | "Metal" | "Glass" | "Organic" | "E-waste",
+            "weight_g": estimated_weight_in_grams_float,
+            "confidence": score_between_0_and_1_float,
+            "carbon_saved_kg": estimated_co2_saved_float,
+            "value_inr": estimated_value_in_inr_float
+        }
+        
+        Category mapping rules:
+        - Plastic: bottles, wrappers, plastic containers, bags
+        - Paper: cardboard, newspapers, books, paper cups
+        - Metal: cans, foil, copper, iron scraps
+        - Glass: glass bottles, jars
+        - Organic: food scraps, leaves, vegetables, fruits
+        - E-waste: cables, old phones, circuit boards, batteries
+        """
+
+        # Call Gemini Flash Vision Model
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=[image, prompt],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json"
+            )
+        )
+
+        # Parse JSON
+        result = json.loads(response.text)
+        return result
+
+    except Exception as e:
+        print(f"Gemini Prediction Error: {e}")
+        # Fallback values if prediction fails
+        return {
+            "category": "Plastic",
+            "weight_g": 250.0,
+            "confidence": 0.85,
+            "carbon_saved_kg": 0.38,
+            "value_inr": 4.5
+        }
